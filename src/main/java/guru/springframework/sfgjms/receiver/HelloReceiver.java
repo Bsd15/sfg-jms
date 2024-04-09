@@ -2,6 +2,7 @@ package guru.springframework.sfgjms.receiver;
 
 import guru.springframework.sfgjms.config.JmsConfig;
 import guru.springframework.sfgjms.domain.HelloWorld;
+import jakarta.jms.Destination;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Component
@@ -30,7 +32,13 @@ public class HelloReceiver {
     }
 
     @JmsListener(destination = JmsConfig.MY_SEND_RCV_QUEUE)
-    public void receiveAndSend(@Payload HelloWorld helloWorld, @Headers MessageHeaders messageHeaders, Message message) throws JMSException {
+    public void receiveAndSend(
+            @Payload HelloWorld helloWorld,
+            @Headers MessageHeaders messageHeaders,
+            Message jmsMessage,
+            org.springframework.messaging.Message springMessage
+
+    ) throws JMSException {
         log.debug("Received: {}", helloWorld);
         log.info("Received message: " + helloWorld.getMessage());
         HelloWorld payloadMsg = HelloWorld
@@ -39,7 +47,12 @@ public class HelloReceiver {
                 .message("World!!")
                 .build();
         log.info("Replying");
-        jmsTemplate.convertAndSend(message.getJMSReplyTo(), payloadMsg);
+        //example to use Spring Message type
+//        jmsTemplate.convertAndSend(
+//                (Destination) Objects.requireNonNull(springMessage.getHeaders().get("jms_replyTo")),
+//                "Got it"
+//        );
+        jmsTemplate.convertAndSend(jmsMessage.getJMSReplyTo(), payloadMsg);
         log.info("Replied!!");
     }
 }
